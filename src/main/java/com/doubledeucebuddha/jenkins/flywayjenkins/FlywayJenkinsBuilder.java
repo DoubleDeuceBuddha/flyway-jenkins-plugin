@@ -31,6 +31,11 @@ import org.kohsuke.stapler.StaplerRequest;
 import com.google.appengine.labs.repackaged.com.google.common.collect.Maps;
 import com.mysql.jdbc.Driver;
 
+interface Command {
+	void runCommand(Flyway flyway);
+}
+
+
 /**
  * @author nate-kingsley
  *
@@ -42,8 +47,8 @@ public class FlywayJenkinsBuilder extends Builder implements SimpleBuildStep {
 	private final String password;
 	private final String locations;
 	private final String goals;
-	
-	private Map<String, Integer> goalMap;
+
+	private Map<String, Command> flywayMap;
 	
 
 	/**
@@ -62,13 +67,25 @@ public class FlywayJenkinsBuilder extends Builder implements SimpleBuildStep {
 		this.locations = locations;
 		this.goals = goals;
 		
-		this.goalMap = Maps.newHashMap();
-		this.goalMap.put("clean", 1);
-		this.goalMap.put("migrate", 2);
-		this.goalMap.put("info", 3);
-		this.goalMap.put("baseline", 4);
-		this.goalMap.put("repair", 5);
-		
+		this.flywayMap = Maps.newHashMap();
+		this.flywayMap.put("clean", new Command(){
+			public void runCommand(Flyway flyway) { flyway.clean(); };
+		});
+		this.flywayMap.put("migrate", new Command(){
+			public void runCommand(Flyway flyway) { flyway.migrate(); };
+		});
+		this.flywayMap.put("info", new Command(){
+			public void runCommand(Flyway flyway) { flyway.info(); };
+		});
+		this.flywayMap.put("baseline", new Command(){
+			public void runCommand(Flyway flyway) { flyway.baseline(); };
+		});
+		this.flywayMap.put("repair", new Command(){
+			public void runCommand(Flyway flyway) { flyway.repair(); };
+		});
+		this.flywayMap.put("validate", new Command(){
+			public void runCommand(Flyway flyway) { flyway.validate(); };
+		});
 		
 	}
 
@@ -136,30 +153,16 @@ public class FlywayJenkinsBuilder extends Builder implements SimpleBuildStep {
 
 
 		for(String s: StringUtils.split(this.goals, ' ')){
-			if(this.goalMap.containsKey(s)){
-				switch(this.goalMap.get(s)){
-					case 1:
-						flyway.clean();
-						break;
-					case 2:
-						flyway.migrate();
-						break;
-					case 3:
-						flyway.info();
-						break;
-					case 4:
-						flyway.baseline();
-						break;
-					case 5:
-						flyway.repair();
-						break;
-					default:
-						listener.fatalError("No goal defined");
-						break;
-				}
+			
+			
+			if(this.flywayMap.containsKey(s)){
+				listener.getLogger().println("Starting Flyway Goal: " + s);
+				this.flywayMap.get(s).runCommand(flyway);
+				listener.getLogger().println("Finished Flyway Goal: " + s);
 			} else {
-				listener.fatalError("No goal defined");
+				listener.fatalError("Goal not found");
 			}
+			
 		}
 		
 
