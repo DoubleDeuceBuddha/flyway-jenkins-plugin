@@ -1,0 +1,9 @@
+<?jelly escape-by-default='true'?>
+<!--
+  This view is used to render the installed plugins page.
+-->
+<div>
+  This plugin allows for performing Flyway database migrations as a build step.
+  <br />
+  <strong>It does not contain any commercial drivers.</strong>
+</div>
